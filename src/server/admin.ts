@@ -13,6 +13,7 @@ import {
   generateTeamCode,
   isOutcome,
   nextMultiplier,
+  type Outcome,
 } from '#/lib/game'
 import { getSettings, saveSettings } from './settings'
 import {
@@ -231,7 +232,8 @@ export const setOutcomeFn = createServerFn({ method: 'POST' })
       override?: number | null
     }) => {
       if (!d?.roundId || !d?.companyId) throw new Error('Ids required')
-      if (!isOutcome(d.outcome)) throw new Error("Outcome must be 'tank' or 'gain'")
+      if (!isOutcome(d.outcome))
+        throw new Error("Outcome must be 'tank', 'gain' or 'hold'")
       const override = d.override == null ? null : Math.floor(Number(d.override))
       if (override != null && (!Number.isInteger(override) || override < 1))
         throw new Error('Override multiplier must be a positive whole number')
@@ -351,15 +353,16 @@ export const resolveRoundFn = createServerFn({ method: 'POST' })
         .from(investments)
         .where(eq(investments.roundId, round.id))
 
-      // 1) Pay returns (gain). For tanks, return stays 0. Balances were
-      //    already deducted at investment time; only add returns here.
+      // 1) Pay returns: gain pays out, hold refunds the stake, tank pays 0.
+      //    Balances were already deducted at investment time; only add
+      //    returns here.
       let totalPaid = 0
       for (const inv of unresolvedInvestments) {
         const outcome = outcomeByCompany.get(inv.companyId)!
         const rtrn = computeReturn(
           inv.amount,
           inv.multiplierAtInvestment,
-          outcome.outcome === 'gain' ? 'gain' : 'tank',
+          outcome.outcome as Outcome,
         )
         await tx
           .update(investments)
@@ -379,7 +382,7 @@ export const resolveRoundFn = createServerFn({ method: 'POST' })
         const outcome = outcomeByCompany.get(company.id)!
         const next = nextMultiplier(
           company.multiplier,
-          outcome.outcome === 'gain' ? 'gain' : 'tank',
+          outcome.outcome as Outcome,
           settings,
           outcome.multiplierOverride,
         )

@@ -251,7 +251,9 @@ function GameControls({
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                         o.outcome === 'gain'
                           ? 'bg-emerald-600/20 text-emerald-400'
-                          : 'bg-red-600/20 text-red-400'
+                          : o.outcome === 'hold'
+                            ? 'bg-amber-600/20 text-amber-400'
+                            : 'bg-red-600/20 text-red-400'
                       }`}
                     >
                       {c?.name}: {o.outcome}
@@ -381,7 +383,7 @@ function RoundCard({
                   ({c.multiplier}x)
                 </span>
               </span>
-              {(['tank', 'gain'] as const).map((o) => (
+              {(['tank', 'gain', 'hold'] as const).map((o) => (
                 <button
                   key={o}
                   disabled={disabled}
@@ -403,7 +405,9 @@ function RoundCard({
                     outcome?.outcome === o
                       ? o === 'gain'
                         ? 'bg-emerald-600 text-white'
-                        : 'bg-red-600 text-white'
+                        : o === 'hold'
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-red-600 text-white'
                       : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                   }`}
                 >

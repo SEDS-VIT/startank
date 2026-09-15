@@ -5,6 +5,7 @@ import {
   teamLoginFn,
   teamStateFn,
   logoutFn,
+  renameTeamFn,
 } from '#/server/team'
 import { fmt, errMsg } from '#/lib/format'
 
@@ -96,6 +97,9 @@ function TeamDashboard({
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [nameError, setNameError] = useState<string | null>(null)
   const seenResultsRef = useRef<number | null>(null)
 
   const round = state.round
@@ -114,9 +118,13 @@ function TeamDashboard({
       const lost = results.items
         .filter((i) => i.outcome === 'tank')
         .reduce((a, i) => a + i.amount, 0)
+      const returned = results.items
+        .filter((i) => i.outcome === 'hold')
+        .reduce((a, i) => a + i.returnAmount, 0)
       const parts: string[] = []
       if (gained > 0) parts.push(`won ${fmt(gained)}`)
       if (lost > 0) parts.push(`lost ${fmt(lost)}`)
+      if (returned > 0) parts.push(`got back ${fmt(returned)} (no gain, no loss)`)
       setToast(
         `Round ${results.roundNumber} resolved — you ${parts.join(' and ') || 'had no action'}.`,
       )
@@ -146,13 +154,74 @@ function TeamDashboard({
     amount !== '' &&
     !busy
 
+  const saveName = async () => {
+    setNameError(null)
+    try {
+      await renameTeamFn({ data: { name: nameDraft } })
+      setEditingName(false)
+      await refresh()
+    } catch (err) {
+      setNameError(errMsg(err))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-neutral-950 pb-20 text-neutral-100">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-neutral-800 bg-neutral-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div>
-            <p className="text-xs text-neutral-400">{state.team.name}</p>
+            {editingName ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void saveName()
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  maxLength={40}
+                  autoFocus
+                  className="w-40 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="submit"
+                  className="text-xs font-semibold text-emerald-400 hover:text-emerald-300"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingName(false)
+                    setNameError(null)
+                  }}
+                  className="text-xs text-neutral-500 hover:text-neutral-300"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <p className="text-xs text-neutral-400">
+                {state.team.name}
+                <button
+                  onClick={() => {
+                    setNameDraft(state.team.name)
+                    setNameError(null)
+                    setEditingName(true)
+                  }}
+                  className="ml-2 text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
+                  title="Rename team"
+                >
+                  rename
+                </button>
+              </p>
+            )}
+            {nameError && (
+              <p className="mt-0.5 text-xs text-red-400">{nameError}</p>
+            )}
             <p className="text-xl font-bold text-emerald-400">
               ${fmt(state.team.balance)}
             </p>

@@ -15,11 +15,12 @@ ADMIN_PASSWORD="..."       # defaults to "admin123" if unset
 
 ## Game rules
 
-1. Admin drafts a round with scenario text, sets Tank/Gain outcomes per company, then **Starts** the round.
-2. Teams invest; balance is deducted immediately (`balance -= i`).
+1. Admin drafts a round with scenario text, sets Tank/Gain/Hold outcomes per company, then **Starts** the round.
+2. Teams invest; balance is deducted immediately (`balance -= i`). Teams can rename themselves from their dashboard header.
 3. Admin **Closes investments**, then **Resolves**:
    - Gain: return = `i × current multiplier`; multiplier increments for next round (default +1x).
    - Tank: return = 0; multiplier resets to base (default 2x).
+   - Hold: return = `i` (full refund — no gain, no loss); multiplier unchanged.
 4. All defaults (starting balance, base multiplier, increment, multi-invest toggle) are editable in Admin → Global Settings.
 
 Sync is handled via short polling of typed server functions (`teamStateFn` / `adminStateFn`) — no extra infra needed.

@@ -53,7 +53,7 @@ export const roundOutcomes = sqliteTable(
     companyId: integer('company_id')
       .notNull()
       .references(() => companies.id),
-    outcome: text().notNull(), // 'tank' | 'gain'
+    outcome: text().notNull(), // 'tank' | 'gain' | 'hold'
     multiplierOverride: integer('multiplier_override'), // optional manual next-multiplier
   },
   (t) => [uniqueIndex('round_outcomes_round_company').on(t.roundId, t.companyId)],

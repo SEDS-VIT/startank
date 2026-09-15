@@ -1,7 +1,7 @@
 // Core scoring logic for StarTank.
 // All money amounts are integers; multipliers are integers (e.g. 2 == "2x").
 
-export type Outcome = 'tank' | 'gain'
+export type Outcome = 'tank' | 'gain' | 'hold'
 
 export type RoundStatus = 'draft' | 'open' | 'closed' | 'resolved'
 
@@ -19,19 +19,26 @@ export const DEFAULT_SETTINGS: GameSettings = {
   allowMultipleInvestments: false,
 }
 
-/** Payout for an investment given its outcome. Tank => 0 (money already deducted). */
+/**
+ * Payout for an investment given its outcome.
+ * Tank => 0 (money already deducted). Gain => amount × multiplier.
+ * Hold => exact refund of the amount (no gain, no loss).
+ */
 export function computeReturn(
   amount: number,
   multiplier: number,
   outcome: Outcome,
 ): number {
-  return outcome === 'gain' ? amount * multiplier : 0
+  if (outcome === 'gain') return amount * multiplier
+  if (outcome === 'hold') return amount
+  return 0
 }
 
 /**
  * Next multiplier for a company after a round resolves.
  * GAIN: current + increment (e.g. 2x -> 3x).
  * TANK: reset to base multiplier.
+ * HOLD: unchanged.
  * An explicit override (set by admin) bypasses the default rule.
  */
 export function nextMultiplier(
@@ -42,6 +49,7 @@ export function nextMultiplier(
 ): number {
   if (override != null) return override
   if (outcome === 'gain') return current + settings.multiplierIncrement
+  if (outcome === 'hold') return current
   return settings.baseMultiplier
 }
 
@@ -59,7 +67,7 @@ export function generateTeamCode(length = 6): string {
 }
 
 export function isOutcome(v: string): v is Outcome {
-  return v === 'tank' || v === 'gain'
+  return v === 'tank' || v === 'gain' || v === 'hold'
 }
 
 export function isRoundStatus(v: string): v is RoundStatus {

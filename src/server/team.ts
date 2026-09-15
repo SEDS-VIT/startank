@@ -1,7 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { db } from '#/db'
-import { companies, investments, rounds, teams } from '#/db/schema'
+import {
+  companies,
+  investments,
+  roundOutcomes,
+  rounds,
+  teams,
+} from '#/db/schema'
 import { getSettings } from './settings'
 import {
   createSession,
@@ -35,6 +41,23 @@ export const logoutFn = createServerFn({ method: 'POST' }).handler(
     return { ok: true }
   },
 )
+
+// ─── Rename own team ─────────────────────────────────────────────────
+export const renameTeamFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { name: string }) => {
+    const name = (d?.name ?? '').trim().replace(/\s+/g, ' ')
+    if (!name) throw new Error('Team name required')
+    if (name.length > 40) throw new Error('Name must be 40 characters or less')
+    return { name }
+  })
+  .handler(async ({ data }) => {
+    const team = await requireTeam()
+    await db
+      .update(teams)
+      .set({ name: data.name })
+      .where(eq(teams.id, team.id))
+    return { name: data.name }
+  })
 
 // ─── Team full state (polled from the dashboard) ─────────────────────
 export const teamStateFn = createServerFn({ method: 'GET' }).handler(
@@ -97,10 +120,18 @@ export const teamStateFn = createServerFn({ method: 'GET' }).handler(
         const companyNameById = new Map(
           companyRows.map((c) => [c.id, c.name] as const),
         )
-        // returnAmount > 0 means the company gained; 0 means it tanked
+        // Outcomes are read from the round record — they cannot be inferred
+        // from returnAmount (a hold refunds the stake, which is > 0).
+        const outcomeRows = await db
+          .select()
+          .from(roundOutcomes)
+          .where(eq(roundOutcomes.roundId, round.id))
+        const outcomeByCompany = new Map(
+          outcomeRows.map((o) => [o.companyId, o.outcome] as const),
+        )
         const items = invRows.map((inv) => {
           const rtrn = inv.returnAmount ?? 0
-          const outcome = rtrn > 0 ? 'gain' : 'tank'
+          const outcome = outcomeByCompany.get(inv.companyId) ?? 'tank'
           return {
             companyName: companyNameById.get(inv.companyId) ?? 'Unknown',
             amount: inv.amount,
