@@ -270,9 +270,6 @@ function TeamDashboard({
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{c.name}</h3>
-                  <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-400">
-                    {c.multiplier}x
-                  </span>
                 </div>
                 {c.description && (
                   <p className="mt-1 text-sm text-neutral-400">{c.description}</p>
