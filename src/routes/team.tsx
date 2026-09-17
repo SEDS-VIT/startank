@@ -291,8 +291,6 @@ function TeamDashboard({
                   <span className="font-medium">
                     {state.companies.find((c) => c.id === inv.companyId)?.name}
                   </span>
-                  {' — '}
-                  ${fmt(inv.amount)} @ {inv.multiplier}x
                 </li>
               ))}
             </ul>
